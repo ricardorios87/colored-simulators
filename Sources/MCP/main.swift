@@ -194,10 +194,10 @@ class MCPServer {
                             ]),
                             "directory": .object([
                                 "type": .string("string"),
-                                "description": .string("Project directory path for git branch detection. Pass your current working directory.")
+                                "description": .string("REQUIRED. Absolute path to the project directory. Used to detect the git branch for the simulator label. Always pass your current working directory.")
                             ])
                         ]),
-                        "required": .array([.string("label")])
+                        "required": .array([.string("label"), .string("directory")])
                     ])
                 ]),
                 .object([
