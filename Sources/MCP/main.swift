@@ -176,9 +176,13 @@ class MCPServer {
                                 "type": .string("boolean"),
                                 "description": .string("Boot a simulator if none is booted. Defaults to true."),
                                 "default": .bool(true)
+                            ]),
+                            "directory": .object([
+                                "type": .string("string"),
+                                "description": .string("Project directory path for git branch detection. Pass your current working directory.")
                             ])
                         ]),
-                        "required": .array([.string("label")])
+                        "required": .array([.string("label"), .string("directory")])
                     ])
                 ]),
                 .object([
@@ -243,28 +247,10 @@ class MCPServer {
 
     // MARK: - Tool Handlers
 
-    func currentGitBranch() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        do {
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            return nil
-        }
-    }
-
     func handleClaimSimulator(id: AnyCodableID?, arguments: [String: AnyCodable]) {
         let agentName = arguments["label"]?.stringValue ?? "Agent"
-        let branch = currentGitBranch()
-        let label = branch != nil ? "\(agentName) · \(branch!)" : agentName
+        let directory = arguments["directory"]?.stringValue
+        let label = GitHelper.buildLabel(agentName: agentName, directory: directory)
         let color = arguments["color"]?.stringValue
         let udid = arguments["udid"]?.stringValue
         let boot = arguments["boot"]?.boolValue ?? true

@@ -14,14 +14,18 @@ struct ClaimCommand: ParsableCommand {
     @Option(name: .long, help: "Border color: \(SimColor.allCases.map(\.rawValue).joined(separator: ", "))")
     var color: String?
 
-    @Option(name: .long, help: "Floating label text (e.g. agent name)")
+    @Option(name: .long, help: "Agent name. The current git branch is auto-appended.")
     var label: String = "Agent"
+
+    @Option(name: .long, help: "Git repo directory for branch detection. Defaults to current directory.")
+    var dir: String?
 
     @Flag(name: .long, inversion: .prefixedNo, help: "Boot a simulator if none is booted")
     var boot: Bool = true
 
     func run() throws {
-        let result = try OverlayLauncher.claim(udid: udid, color: color, label: label, boot: boot)
+        let fullLabel = GitHelper.buildLabel(agentName: label, directory: dir)
+        let result = try OverlayLauncher.claim(udid: udid, color: color, label: fullLabel, boot: boot)
 
         let c = result.color
         print("\(c.ansi)●\(SimColor.reset) Claimed \(result.deviceName) with \(c.rawValue) border — label: \"\(result.label)\"")
