@@ -1,19 +1,20 @@
 # colored-sim
 
-Colored borders and floating labels for iOS Simulator windows. Built for multi-agent workflows where multiple AI agents (Claude Code, Cursor, Copilot, etc.) each run on different simulators and you need to tell them apart at a glance.
+Colored borders and floating labels for iOS Simulator windows. Know which AI agent owns which simulator at a glance.
 
 Inspired by [RocketSim](https://www.rocketsim.app/).
 
-## How it works
+## Install
 
-`colored-sim` draws a colored border overlay and a floating label on top of an iOS Simulator window. Each agent claims a simulator with a unique color, so you always know which simulator belongs to which agent.
+```bash
+brew tap ricardorios87/tap
+brew install colored-sim
+```
 
-- Borders have rounded corners and track the simulator window as you move/resize it
-- Overlays automatically hide when the simulator is behind another window
-- Auto-boots a simulator if none is running
-- Auto-assigns colors if you don't specify one
+> macOS will ask for **Screen Recording** permission on first run. The overlay needs this to track simulator windows.
 
-## Installation
+<details>
+<summary>Build from source</summary>
 
 Requires macOS 13+ and Swift 5.9+.
 
@@ -21,72 +22,38 @@ Requires macOS 13+ and Swift 5.9+.
 git clone https://github.com/ricardorios87/colored-simulators.git
 cd colored-simulators
 swift build -c release
-```
-
-The binaries will be at `.build/release/colored-sim`, `.build/release/colored-sim-overlay`, and `.build/release/colored-sim-mcp`. The first two need to be in the same directory.
-
-To install globally:
-
-```bash
 cp .build/release/colored-sim .build/release/colored-sim-overlay .build/release/colored-sim-mcp /usr/local/bin/
 ```
 
-> **Note:** On first run, macOS will ask for Screen Recording permission. The overlay needs this to detect simulator window positions.
+</details>
 
-## Usage
-
-### Claim a simulator
+## Quick Start
 
 ```bash
-# Auto-pick a booted simulator, auto-assign a color
+# Claim a simulator (auto-boots one if needed, auto-picks a color)
 colored-sim claim --label "Claude Code"
 
-# Specify a color
+# Claim with a specific color
 colored-sim claim --label "Cursor" --color red
 
-# Specify a simulator by UDID
-colored-sim claim --udid "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" --color green --label "Copilot"
-
-# Use a descriptive label
-colored-sim claim --label "Claude Code - Building Feature #42" --color blue
-```
-
-If no simulator is booted, one will be started automatically. Use `--no-boot` to disable this.
-
-### List simulators
-
-```bash
+# See all simulators and who owns them
 colored-sim list
-```
 
-Shows all booted simulators with their claim status, color, label, and overlay PID.
-
-### Release a simulator
-
-```bash
-# Release a specific simulator
-colored-sim release --udid "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
-
-# If only one is claimed, no UDID needed
-colored-sim release
-
-# Release all
+# Release when done
 colored-sim release-all
 ```
 
 ### Available colors
 
-`red`, `blue`, `green`, `orange`, `purple`, `yellow`, `pink`, `cyan`, `teal`
+`red` `blue` `green` `orange` `purple` `yellow` `pink` `cyan` `teal`
 
-If you don't specify a color, the next unused one is assigned automatically.
+Colors are auto-assigned if you don't specify one.
 
-## MCP Server
+## MCP Setup (for AI agents)
 
-`colored-sim-mcp` is an MCP (Model Context Protocol) server that lets AI agents claim and release simulators natively — no shell access needed.
+The MCP server lets agents like Claude Code claim simulators as a native tool — no shell needed.
 
-### Setup for Claude Code
-
-Add to your `~/.claude/claude_desktop_config.json`:
+Add to your `~/.claude.json` or project `.mcp.json`:
 
 ```json
 {
@@ -98,47 +65,22 @@ Add to your `~/.claude/claude_desktop_config.json`:
 }
 ```
 
-Or if you haven't installed globally, use the full path:
+That's it. Your agent now has these tools:
 
-```json
-{
-  "mcpServers": {
-    "colored-sim": {
-      "command": "/path/to/colored-simulators/.build/release/colored-sim-mcp"
-    }
-  }
-}
-```
-
-### Available MCP Tools
-
-| Tool | Description |
+| Tool | What it does |
 |------|-------------|
-| `claim_simulator` | Claim a simulator with a colored border and label. Auto-boots if needed. |
-| `release_simulator` | Remove the overlay from a simulator. |
-| `release_all_simulators` | Remove all overlays. |
-| `list_simulators` | List all booted simulators and their claim status. |
+| `claim_simulator` | Claim a simulator with a colored border and label |
+| `release_simulator` | Remove the overlay from a simulator |
+| `release_all_simulators` | Remove all overlays |
+| `list_simulators` | List booted simulators and their claim status |
 
-### Agent integration via CLI
+## How it works
 
-Any agent with shell access can also use the CLI directly:
-
-```bash
-# Agent starts work
-colored-sim claim --label "Agent Name" --color blue
-
-# Agent finishes
-colored-sim release-all
-```
-
-## How it works (technical)
-
-- **MCP Server** (`colored-sim-mcp`) — JSON-RPC over stdio server that exposes claim/release/list as MCP tools for AI agents
-- **CLI** (`colored-sim`) — manages the registry at `~/.colored-sim/registry.json` and spawns overlay processes
-- **Overlay** (`colored-sim-overlay`) — a lightweight AppKit process per simulator that draws a borderless `NSWindow` with a colored rounded-rect border and a floating label pill
-- **Window tracking** — uses `CGWindowListCopyWindowInfo` to find the Simulator window by name and follow its position every 0.5s
-- **Visibility detection** — checks the window z-order and hides the overlay when another window covers more than 50% of the simulator
-- **Stale cleanup** — dead overlay processes are automatically pruned from the registry
+- A colored rounded-corner border and floating label are drawn on top of the Simulator window
+- The overlay tracks the window position as you move or resize it
+- Overlays auto-hide when the simulator is behind another window
+- If no simulator is booted, one is started automatically
+- Dead overlay processes are cleaned up automatically
 
 ## License
 
