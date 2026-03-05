@@ -1,32 +1,39 @@
 import Foundation
 
-struct SimDevice: Codable {
-    let udid: String
-    let name: String
-    let state: String
-    let isAvailable: Bool
+public struct SimDevice: Codable {
+    public let udid: String
+    public let name: String
+    public let state: String
+    public let isAvailable: Bool
 
-    var isBooted: Bool { state == "Booted" }
+    public var isBooted: Bool { state == "Booted" }
+
+    public init(udid: String, name: String, state: String, isAvailable: Bool) {
+        self.udid = udid
+        self.name = name
+        self.state = state
+        self.isAvailable = isAvailable
+    }
 }
 
-struct SimDeviceList: Codable {
-    let devices: [String: [SimDevice]]
+public struct SimDeviceList: Codable {
+    public let devices: [String: [SimDevice]]
 
-    var allDevices: [SimDevice] {
+    public var allDevices: [SimDevice] {
         devices.values.flatMap { $0 }
     }
 
-    var bootedDevices: [SimDevice] {
+    public var bootedDevices: [SimDevice] {
         allDevices.filter(\.isBooted)
     }
 
-    var availableDevices: [SimDevice] {
+    public var availableDevices: [SimDevice] {
         allDevices.filter(\.isAvailable)
     }
 }
 
-enum SimulatorService {
-    static func listDevices() throws -> SimDeviceList {
+public enum SimulatorService {
+    public static func listDevices() throws -> SimDeviceList {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         process.arguments = ["simctl", "list", "devices", "-j"]
@@ -40,7 +47,7 @@ enum SimulatorService {
         return try JSONDecoder().decode(SimDeviceList.self, from: data)
     }
 
-    static func bootDevice(udid: String) throws {
+    public static func bootDevice(udid: String) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         process.arguments = ["simctl", "boot", udid]
@@ -53,23 +60,21 @@ enum SimulatorService {
             throw SimError.bootFailed(udid)
         }
 
-        // Open Simulator.app so the window appears
         let open = Process()
         open.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         open.arguments = ["-a", "Simulator"]
         try open.run()
         open.waitUntilExit()
     }
-
 }
 
-enum SimError: LocalizedError {
+public enum SimError: LocalizedError {
     case bootFailed(String)
     case noSimulatorFound
     case simulatorNotBooted(String)
     case overlayBinaryNotFound
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .bootFailed(let udid):
             return "Failed to boot simulator \(udid)"

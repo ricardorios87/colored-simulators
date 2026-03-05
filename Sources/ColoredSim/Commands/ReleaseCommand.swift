@@ -1,4 +1,5 @@
 import ArgumentParser
+import ColoredSimKit
 import Foundation
 
 struct ReleaseCommand: ParsableCommand {
@@ -36,7 +37,6 @@ struct ReleaseCommand: ParsableCommand {
             throw ExitCode.failure
         }
 
-        // Kill overlay process
         kill(entry.overlayPID, SIGTERM)
         print("Released \(entry.deviceName) [\(entry.color)] — overlay PID \(entry.overlayPID) terminated.")
     }

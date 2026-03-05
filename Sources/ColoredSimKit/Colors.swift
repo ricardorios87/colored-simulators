@@ -1,6 +1,6 @@
 import Foundation
 
-enum SimColor: String, CaseIterable {
+public enum SimColor: String, CaseIterable {
     case red
     case blue
     case green
@@ -11,8 +11,7 @@ enum SimColor: String, CaseIterable {
     case cyan
     case teal
 
-    /// Returns hex color string for the overlay process
-    var hex: String {
+    public var hex: String {
         switch self {
         case .red: return "FF3B30"
         case .blue: return "007AFF"
@@ -26,8 +25,7 @@ enum SimColor: String, CaseIterable {
         }
     }
 
-    /// ANSI terminal color for CLI output
-    var ansi: String {
+    public var ansi: String {
         switch self {
         case .red: return "\u{1B}[31m"
         case .blue: return "\u{1B}[34m"
@@ -41,10 +39,9 @@ enum SimColor: String, CaseIterable {
         }
     }
 
-    static let reset = "\u{1B}[0m"
+    public static let reset = "\u{1B}[0m"
 
-    /// Pick the next available color not already in use
-    static func nextAvailable(excluding used: Set<String>) -> SimColor {
+    public static func nextAvailable(excluding used: Set<String>) -> SimColor {
         for color in allCases where !used.contains(color.rawValue) {
             return color
         }

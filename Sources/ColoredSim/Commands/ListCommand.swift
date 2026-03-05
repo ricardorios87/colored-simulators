@@ -1,4 +1,5 @@
 import ArgumentParser
+import ColoredSimKit
 import Foundation
 
 struct ListCommand: ParsableCommand {

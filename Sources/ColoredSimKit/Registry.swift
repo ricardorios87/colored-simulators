@@ -1,15 +1,24 @@
 import Foundation
 
-struct RegistryEntry: Codable {
-    let udid: String
-    let deviceName: String
-    let color: String
-    let label: String
-    let overlayPID: Int32
-    let createdAt: Date
+public struct RegistryEntry: Codable {
+    public let udid: String
+    public let deviceName: String
+    public let color: String
+    public let label: String
+    public let overlayPID: Int32
+    public let createdAt: Date
+
+    public init(udid: String, deviceName: String, color: String, label: String, overlayPID: Int32, createdAt: Date) {
+        self.udid = udid
+        self.deviceName = deviceName
+        self.color = color
+        self.label = label
+        self.overlayPID = overlayPID
+        self.createdAt = createdAt
+    }
 }
 
-struct Registry {
+public struct Registry {
     private static var registryDir: URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".colored-sim")
     }
@@ -18,7 +27,7 @@ struct Registry {
         registryDir.appendingPathComponent("registry.json")
     }
 
-    static func load() -> [String: RegistryEntry] {
+    public static func load() -> [String: RegistryEntry] {
         guard let data = try? Data(contentsOf: registryFile),
               let entries = try? JSONDecoder().decode([String: RegistryEntry].self, from: data) else {
             return [:]
@@ -26,7 +35,7 @@ struct Registry {
         return entries
     }
 
-    static func save(_ entries: [String: RegistryEntry]) throws {
+    public static func save(_ entries: [String: RegistryEntry]) throws {
         try FileManager.default.createDirectory(at: registryDir, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -34,25 +43,24 @@ struct Registry {
         try data.write(to: registryFile)
     }
 
-    static func add(_ entry: RegistryEntry) throws {
+    public static func add(_ entry: RegistryEntry) throws {
         var entries = load()
         entries[entry.udid] = entry
         try save(entries)
     }
 
-    static func remove(udid: String) throws -> RegistryEntry? {
+    public static func remove(udid: String) throws -> RegistryEntry? {
         var entries = load()
         let removed = entries.removeValue(forKey: udid)
         try save(entries)
         return removed
     }
 
-    static func get(udid: String) -> RegistryEntry? {
+    public static func get(udid: String) -> RegistryEntry? {
         load()[udid]
     }
 
-    /// Clean up entries whose overlay process is no longer running
-    static func pruneStale() throws {
+    public static func pruneStale() throws {
         var entries = load()
         var changed = false
         for (udid, entry) in entries {
