@@ -55,9 +55,9 @@ class FloatingTagWindow: NSWindow {
             .foregroundColor: NSColor.white,
         ]
         let textSize = (label as NSString).size(withAttributes: attributes)
-        let padding: CGFloat = 24
+        let paddingH: CGFloat = 32
         let height: CGFloat = 38
-        let width = textSize.width + padding
+        let width = textSize.width + paddingH
 
         let frame = NSRect(x: point.x, y: point.y, width: width, height: height)
         super.init(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
@@ -77,7 +77,8 @@ class FloatingTagWindow: NSWindow {
         let textField = NSTextField(labelWithString: label)
         textField.font = font
         textField.textColor = .white
-        textField.frame = NSRect(x: padding / 2, y: (height - textSize.height) / 2, width: textSize.width, height: textSize.height)
+        textField.frame = NSRect(x: 0, y: (height - textSize.height) / 2, width: width, height: textSize.height)
+        textField.alignment = .center
         textField.isBezeled = false
         textField.drawsBackground = false
 
@@ -109,6 +110,21 @@ class OverlayWindow: NSWindow {
             borderView.needsDisplay = true
         }
     }
+}
+
+// MARK: - Window Matching
+
+/// Check if a Simulator window title matches a device name exactly.
+/// Window titles look like "iPhone 17 Pro Max" or "iPhone 17 Pro Max — iOS 26.2".
+/// We need "iPhone 17" to NOT match "iPhone 17 Pro Max".
+func windowTitleMatchesDevice(_ windowTitle: String, _ deviceName: String) -> Bool {
+    // Window titles are either exactly the device name (e.g. "iPhone 17 Pro Max")
+    // or device name + version (e.g. "iPhone 17 Pro Max — iOS 26.2").
+    // We must ensure "iPhone 17" does NOT match "iPhone 17 Pro Max".
+    if windowTitle == deviceName { return true }
+    if windowTitle.hasPrefix(deviceName + " \u{2014}") { return true }  // em dash
+    if windowTitle.hasPrefix(deviceName + " -") { return true }         // regular dash
+    return false
 }
 
 // MARK: - Window Tracker
@@ -222,7 +238,7 @@ class SimulatorWindowTracker {
 
             if ownerName == "Simulator",
                let windowName = window[kCGWindowName as String] as? String,
-               windowName.contains(deviceName) {
+               windowTitleMatchesDevice(windowName, deviceName) {
                 simFrame = frame
                 simFound = true
                 break
@@ -245,7 +261,7 @@ class SimulatorWindowTracker {
             // Stop when we reach the simulator window itself
             if ownerName == "Simulator",
                let windowName = window[kCGWindowName as String] as? String,
-               windowName.contains(deviceName) {
+               windowTitleMatchesDevice(windowName, deviceName) {
                 break
             }
 

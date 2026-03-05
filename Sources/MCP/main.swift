@@ -161,7 +161,7 @@ class MCPServer {
                         "properties": .object([
                             "label": .object([
                                 "type": .string("string"),
-                                "description": .string("Floating label text shown above the simulator (e.g. your agent name)")
+                                "description": .string("Agent name (e.g. 'Claude Code', 'Cursor'). The current git branch is auto-appended to the label.")
                             ]),
                             "color": .object([
                                 "type": .string("string"),
@@ -243,8 +243,28 @@ class MCPServer {
 
     // MARK: - Tool Handlers
 
+    func currentGitBranch() -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = ["rev-parse", "--abbrev-ref", "HEAD"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { return nil }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            return nil
+        }
+    }
+
     func handleClaimSimulator(id: AnyCodableID?, arguments: [String: AnyCodable]) {
-        let label = arguments["label"]?.stringValue ?? "Agent"
+        let agentName = arguments["label"]?.stringValue ?? "Agent"
+        let branch = currentGitBranch()
+        let label = branch != nil ? "\(agentName) · \(branch!)" : agentName
         let color = arguments["color"]?.stringValue
         let udid = arguments["udid"]?.stringValue
         let boot = arguments["boot"]?.boolValue ?? true
