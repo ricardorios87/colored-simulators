@@ -96,6 +96,8 @@ indirect enum AnyCodable: Codable {
 // MARK: - MCP Server
 
 class MCPServer {
+    var clientRootDirectory: String?
+
     let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.outputFormatting = [.sortedKeys]
@@ -137,6 +139,19 @@ class MCPServer {
     }
 
     func handleInitialize(_ request: JSONRPCRequest) {
+        // Extract client root directory from roots param
+        if let params = request.params,
+           case .array(let roots) = params["roots"],
+           case .object(let firstRoot) = roots.first,
+           let uri = firstRoot["uri"]?.stringValue {
+            // roots URIs are file:// URLs
+            if uri.hasPrefix("file://") {
+                clientRootDirectory = String(uri.dropFirst(7))
+            } else {
+                clientRootDirectory = uri
+            }
+        }
+
         let result: AnyCodable = .object([
             "protocolVersion": .string("2024-11-05"),
             "capabilities": .object([
@@ -182,7 +197,7 @@ class MCPServer {
                                 "description": .string("Project directory path for git branch detection. Pass your current working directory.")
                             ])
                         ]),
-                        "required": .array([.string("label"), .string("directory")])
+                        "required": .array([.string("label")])
                     ])
                 ]),
                 .object([
@@ -250,6 +265,8 @@ class MCPServer {
     func handleClaimSimulator(id: AnyCodableID?, arguments: [String: AnyCodable]) {
         let agentName = arguments["label"]?.stringValue ?? "Agent"
         let directory = arguments["directory"]?.stringValue
+            ?? clientRootDirectory
+            ?? ProcessInfo.processInfo.environment["PWD"]
         let label = GitHelper.buildLabel(agentName: agentName, directory: directory)
         let color = arguments["color"]?.stringValue
         let udid = arguments["udid"]?.stringValue
