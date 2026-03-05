@@ -90,29 +90,38 @@ public enum OverlayLauncher {
     }
 
     private static func findOverlayBinary() throws -> String {
-        // Check next to the current binary
-        let currentExec = CommandLine.arguments[0]
-        let dir = (currentExec as NSString).deletingLastPathComponent
-        let candidate = (dir as NSString).appendingPathComponent("colored-sim-overlay")
-        if FileManager.default.isExecutableFile(atPath: candidate) {
-            return candidate
+        let fm = FileManager.default
+        let overlayName = "colored-sim-overlay"
+
+        // 1. Next to the current executable (resolve symlinks for Homebrew)
+        let currentExec = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().path
+        let execDir = (currentExec as NSString).deletingLastPathComponent
+        let nearExec = (execDir as NSString).appendingPathComponent(overlayName)
+        if fm.isExecutableFile(atPath: nearExec) {
+            return nearExec
         }
 
-        // Check common swift build paths
-        let buildPaths = [
-            ".build/debug/colored-sim-overlay",
-            ".build/release/colored-sim-overlay",
-        ]
-        for path in buildPaths {
-            if FileManager.default.isExecutableFile(atPath: path) {
-                return path
+        // 2. Search PATH
+        if let pathEnv = ProcessInfo.processInfo.environment["PATH"] {
+            for dir in pathEnv.split(separator: ":") {
+                let candidate = "\(dir)/\(overlayName)"
+                if fm.isExecutableFile(atPath: candidate) {
+                    return candidate
+                }
             }
         }
 
-        // Check /usr/local/bin
-        let globalPath = "/usr/local/bin/colored-sim-overlay"
-        if FileManager.default.isExecutableFile(atPath: globalPath) {
-            return globalPath
+        // 3. Common known locations
+        let knownPaths = [
+            "/opt/homebrew/bin/\(overlayName)",
+            "/usr/local/bin/\(overlayName)",
+            ".build/debug/\(overlayName)",
+            ".build/release/\(overlayName)",
+        ]
+        for path in knownPaths {
+            if fm.isExecutableFile(atPath: path) {
+                return path
+            }
         }
 
         throw SimError.overlayBinaryNotFound
