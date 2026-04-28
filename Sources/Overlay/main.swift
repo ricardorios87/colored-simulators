@@ -37,6 +37,7 @@ class BorderView: NSView {
     var borderColor: NSColor = .red
     var borderWidth: CGFloat = 4.0
     var cornerRadius: CGFloat = 12.0
+    var label: String = ""
 
     override func draw(_ dirtyRect: NSRect) {
         let inset = borderWidth / 2
@@ -44,51 +45,32 @@ class BorderView: NSView {
         path.lineWidth = borderWidth
         borderColor.setStroke()
         path.stroke()
-    }
-}
 
-class FloatingTagWindow: NSWindow {
-    init(label: String, color: NSColor, at point: NSPoint) {
-        let font = NSFont.systemFont(ofSize: 18, weight: .bold)
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor.white,
+        guard !label.isEmpty else { return }
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11, weight: .bold),
+            .foregroundColor: NSColor.black,
         ]
-        let textSize = (label as NSString).size(withAttributes: attributes)
-        let paddingH: CGFloat = 32
-        let height: CGFloat = 38
-        let width = textSize.width + paddingH
-
-        let frame = NSRect(x: point.x, y: point.y, width: width, height: height)
-        super.init(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
-
-        self.isOpaque = false
-        self.backgroundColor = .clear
-        self.level = .floating
-        self.collectionBehavior = [.canJoinAllSpaces]
-        self.ignoresMouseEvents = true
-        self.hasShadow = true
-
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: height))
-        container.wantsLayer = true
-        container.layer?.backgroundColor = color.withAlphaComponent(0.9).cgColor
-        container.layer?.cornerRadius = 10
-
-        let textField = NSTextField(labelWithString: label)
-        textField.font = font
-        textField.textColor = .white
-        textField.frame = NSRect(x: 0, y: (height - textSize.height) / 2, width: width, height: textSize.height)
-        textField.alignment = .center
-        textField.isBezeled = false
-        textField.drawsBackground = false
-
-        container.addSubview(textField)
-        self.contentView = container
+        let attrText = NSAttributedString(string: "  \(label)  ", attributes: attrs)
+        let textSize = attrText.size()
+        let pillW = textSize.width
+        let pillH = textSize.height + 4
+        let pillRect = NSRect(
+            x: (bounds.width - pillW) / 2,
+            y: bounds.height - pillH - 2,
+            width: pillW,
+            height: pillH
+        )
+        let pillPath = NSBezierPath(roundedRect: pillRect, xRadius: 7, yRadius: 7)
+        borderColor.setFill()
+        pillPath.fill()
+        attrText.draw(at: NSPoint(x: pillRect.minX, y: pillRect.minY + 3))
     }
 }
 
 class OverlayWindow: NSWindow {
-    init(frame: NSRect, color: NSColor, width: CGFloat) {
+    init(frame: NSRect, color: NSColor, width: CGFloat, label: String) {
         super.init(contentRect: frame, styleMask: .borderless, backing: .buffered, defer: false)
         self.isOpaque = false
         self.backgroundColor = .clear
@@ -100,6 +82,7 @@ class OverlayWindow: NSWindow {
         let borderView = BorderView(frame: NSRect(origin: .zero, size: frame.size))
         borderView.borderColor = color
         borderView.borderWidth = width
+        borderView.label = label
         self.contentView = borderView
     }
 
@@ -134,7 +117,6 @@ class SimulatorWindowTracker {
     let color: NSColor
     let label: String
     var overlayWindow: OverlayWindow?
-    var tagWindow: FloatingTagWindow?
     var timer: Timer?
 
     init(deviceName: String, color: NSColor, label: String) {
@@ -154,14 +136,12 @@ class SimulatorWindowTracker {
     func update() {
         guard let simWindow = findSimulatorWindow() else {
             overlayWindow?.orderOut(nil)
-            tagWindow?.orderOut(nil)
             return
         }
 
         // Hide overlay when the simulator is mostly covered by another window
         guard simWindow.isTopmost else {
             overlayWindow?.orderOut(nil)
-            tagWindow?.orderOut(nil)
             return
         }
 
@@ -171,24 +151,9 @@ class SimulatorWindowTracker {
             overlay.updateFrame(nsFrame)
             overlay.orderFront(nil)
         } else {
-            let overlay = OverlayWindow(frame: nsFrame, color: color, width: borderWidth)
+            let overlay = OverlayWindow(frame: nsFrame, color: color, width: borderWidth, label: label)
             overlay.orderFront(nil)
             self.overlayWindow = overlay
-        }
-
-        // Position floating tag above the top-right corner of the simulator
-        let tagPoint = NSPoint(
-            x: nsFrame.maxX - 120,
-            y: nsFrame.maxY + 4
-        )
-
-        if let tag = tagWindow {
-            tag.setFrameOrigin(tagPoint)
-            tag.orderFront(nil)
-        } else {
-            let tag = FloatingTagWindow(label: label, color: color, at: tagPoint)
-            tag.orderFront(nil)
-            self.tagWindow = tag
         }
     }
 
